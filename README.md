@@ -1,87 +1,137 @@
-🚀 Déploiement de l’Environnement IIOTVM avec Docker et OPC UA
-Ce guide décrit les étapes nécessaires pour la mise en place d’un environnement IIoT complet sur une machine virtuelle Azure, intégrant Docker-Compose et un serveur OPC UA basé sur open62541. L’installation comprend plusieurs services clés :
+### # Déploiement de l’Environnement IIOTVM avec Docker et OPC UA  
 
-Traefik (Reverse Proxy)
-MariaDB & phpMyAdmin (Base de données et interface de gestion)
-Streamlit (Interface de visualisation)
-Node-RED (Automatisation et IoT)
-MQTT (Communication IoT)
-Serveur OPC UA (Protocole industriel, configuré via JSON)
-🎥 Résumé vidéo des étapes : YouTube
+Ce guide détaille l’ensemble des étapes pour déployer une **machine virtuelle sur Azure**, installer **Docker-Compose** et configurer un **serveur OPC UA** basé sur **open62541**. L’environnement comprend plusieurs services essentiels :  
 
-🌐 1. Création de la Machine Virtuelle sur Azure
-1.1 Connexion et Création de la VM
-Accédez à Azure Portal et connectez-vous.
-Créez une machine virtuelle avec Ubuntu Server 24.04 LTS.
-Configuration recommandée :
-Ports ouverts : 80 (HTTP), 443 (HTTPS), 22 (SSH), 4840 (OPC UA) (à configurer après création).
-Connexion à la VM via SSH :
-bash
-Copy
-Edit
+- **Traefik** (Reverse Proxy)  
+- **MariaDB** & **phpMyAdmin** (Base de données et interface de gestion)  
+- **Streamlit** (Interface de visualisation)  
+- **Node-RED** (Automatisation et IoT)  
+- **MQTT** (Communication IoT)  
+- **Serveur OPC UA** (Protocole industriel, configuré via JSON)  
+
+🎥 **Vidéo récapitulative des étapes :** [YouTube](https://youtu.be/HKy8vaBAl9k)  
+
+---
+
+# 1. Création de la Machine Virtuelle sur Azure  
+
+## 1.1 Connexion au Portail Azure  
+- Accédez à [Azure Portal](https://azure.microsoft.com/fr-fr/free/students) et connectez-vous avec votre compte.  
+
+## 1.2 Création d’une Nouvelle VM  
+- Cliquez sur **"Créer une ressource"**, puis sélectionnez **"Machine virtuelle"**.  
+- Choisissez **Ubuntu Server 24.04 LTS** pour assurer la compatibilité avec Docker et les outils requis.  
+- **Configuration recommandée :**  
+  - Ouvrir les ports **80 (HTTP)**, **443 (HTTPS)**, **22 (SSH)**.  
+  - Ouvrir le port **4840** pour **OPC UA** (à ajouter après la création de la VM).  
+
+## 1.3 Connexion à la VM  
+Une fois la VM créée, connectez-vous via Azure CLI ou SSH :  
+
+```bash
 az ssh vm --ip <adresse_ip_VM> --local_user <utilisateur>
-# Alternative si la première méthode échoue :
+# Si la méthode précédente échoue :
 ssh <utilisateur>@<adresse_ip_VM>
-🌍 2. Configuration d’un Domaine Gratuit
-Obtenir un domaine sur freedomain.one.
-Créer des enregistrements DNS pour pointer vers l’IP de votre VM :
-pma.mondomaine.com → phpMyAdmin
-streamlit.mondomaine.com → Streamlit
-nodered.mondomaine.com → Node-RED
-portainer.mondomaine.com → Portainer
-🛠️ 3. Installation de Docker et Déploiement de l’Environnement
-Exécutez le script d’installation :
+```
 
-bash
-Copy
-Edit
+---
+
+# 2. Configuration d’un Domaine Gratuit  
+
+## 2.1 Obtention d’un Domaine  
+- Rendez-vous sur [freedomain.one](https://freedomain.one) et inscrivez-vous pour obtenir un domaine gratuit.  
+- Exemple de domaine : `iiotvm.publicvm.com`.  
+
+## 2.2 Configuration des Enregistrements DNS  
+Dans l’interface de gestion DNS, ajoutez les enregistrements de type **A** pointant vers l’adresse IP publique de votre VM :  
+- `pma.iiotvm.publicvm.com` → phpMyAdmin  
+- `streamlit.iiotvm.publicvm.com` → Streamlit  
+- `nodered.iiotvm.publicvm.com` → Node-RED  
+- `portainer.iiotvm.publicvm.com` → Portainer  
+
+**Exemple d’enregistrement DNS :**  
+- **Nom :** `pma`  
+- **Valeur :** `<adresse_ip_VM>`  
+
+---
+
+# 3. Installation de Docker et Déploiement de l’Environnement  
+
+## 3.1 Exécution du Script d’Installation  
+Téléchargez et exécutez le script avec la commande suivante :  
+
+```bash
 curl -sSL -o install.sh https://raw.githubusercontent.com/ibroche/IIOTVM/main/Docker+OPCUA/install.sh
 chmod +x install.sh
 ./install.sh
-Ce script :
-✅ Installe Docker et Docker-Compose
-✅ Génère la configuration des services
-✅ Déploie les conteneurs avec docker-compose up -d
-✅ Installe et configure le serveur OPC UA (open62541)
+```
 
-🔒 4. Configuration de Traefik et HTTPS
-Traefik gère automatiquement les redirections HTTPS via Let’s Encrypt.
-Vérifiez que les enregistrements DNS sont bien configurés pour valider les certificats SSL.
-🏭 5. Personnalisation du Serveur OPC UA
-Modifier le fichier opcua_config.json pour personnaliser les variables OPC UA.
-Redémarrer le serveur OPC UA :
-bash
-Copy
-Edit
+Le script réalisera automatiquement les actions suivantes :  
+- Installation de **Docker** et **Docker-Compose**.  
+- Création des fichiers de configuration (ex. `docker-compose.yml`, `mosquitto.conf`).  
+- Déploiement des services avec `docker-compose up -d`.  
+- Installation et configuration du **serveur OPC UA** basé sur **open62541**.  
+
+---
+
+# 4. Configuration de Traefik et HTTPS  
+
+- **Traefik** est configuré pour gérer les certificats SSL via **Let’s Encrypt**.  
+- Vérifiez que vos **enregistrements DNS** sont bien configurés pour que la validation ACME fonctionne correctement.  
+
+---
+
+# 5. Personnalisation du Serveur OPC UA  
+
+## 5.1 Modification du fichier de configuration  
+- Le fichier **`opcua_config.json`** permet de définir les variables exposées par OPC UA.  
+
+## 5.2 Redémarrage du serveur OPC UA  
+Pour appliquer les modifications :  
+
+```bash
 pkill opcua_server
 gcc -std=c99 -I/usr/local/include -L/usr/local/lib -o opcua_server opcua_server.c -lopen62541 -lcjson
 ./opcua_server &
-📊 6. Accès aux Services Déployés
-Service	URL d’accès
-phpMyAdmin	https://pma.mondomaine.com
-Streamlit	https://streamlit.mondomaine.com
-Node-RED	https://nodered.mondomaine.com
-Portainer	https://portainer.mondomaine.com
-📌 Remplacez mondomaine.com par votre domaine personnalisé.
+```
 
-📌 7. Gestion et Supervision
-📌 Consulter les logs des services :
+---
 
-bash
-Copy
-Edit
+# 6. Vérification et Accès aux Services  
+
+## 6.1 Accès aux Interfaces Web  
+
+| Service      | URL d’accès |
+|-------------|------------|
+| phpMyAdmin  | `https://pma.iiotvm.publicvm.com` |
+| Streamlit   | `https://streamlit.iiotvm.publicvm.com` |
+| Node-RED    | `https://nodered.iiotvm.publicvm.com` |
+| Portainer   | `https://portainer.iiotvm.publicvm.com` |
+
+📌 Remplacez `iiotvm.publicvm.com` par votre domaine personnalisé.  
+
+## 6.2 Gestion des Conteneurs Docker  
+
+Pour consulter les logs des services :  
+
+```bash
 docker-compose logs -f
-📌 Redémarrer le serveur OPC UA :
+```
 
-bash
-Copy
-Edit
+## 6.3 Gestion du Serveur OPC UA  
+
+Pour arrêter ou redémarrer le serveur OPC UA :  
+
+```bash
 pkill opcua_server
 ./opcua_server &
-🎯 Conclusion
-Vous avez désormais un environnement IIoT complet fonctionnant sur Azure, incluant :
-✅ Une infrastructure conteneurisée avec Docker-Compose et Traefik
-✅ Un serveur OPC UA configurable via JSON
-✅ Une interface de supervision et de gestion
+```
 
-💡 Personnalisez et adaptez cet environnement selon vos besoins ! 🚀
+---
+
+# 7. Conclusion  
+
+L’environnement **IIOTVM** est désormais opérationnel, intégrant :  
+✅ Une infrastructure **Docker-Compose** avec **Traefik** et SSL.  
+✅ Un **serveur OPC UA** configurable via JSON.  
+✅ Un écosystème IIoT fonctionnel prêt à être personnalisé.
