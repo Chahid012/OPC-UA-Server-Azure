@@ -61,7 +61,7 @@ Dans l’interface de gestion DNS, ajoutez les enregistrements de type **A** poi
 Téléchargez et exécutez le script avec la commande suivante :  
 
 ```bash
-curl -sSL -o install.sh https://raw.githubusercontent.com/ibroche/IIOTVM/main/Docker+OPCUA/install.sh
+curl -sSL -o install.sh https://raw.githubusercontent.com/Chahid012/OPC-UA-Server-Azure/main/install.sh
 chmod +x install.sh
 ./install.sh
 ```
