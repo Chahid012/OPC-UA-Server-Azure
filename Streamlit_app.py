@@ -1,45 +1,80 @@
 import streamlit as st
-import random
 import pandas as pd
-import numpy as np
-import time
+import matplotlib.pyplot as plt
+from opcua import Client
 
-# Titre de l'application
-st.title("TFE AGNABER CHAHID : OPCUA")
+# 🌟 Configuration de la page Streamlit
+st.set_page_config(page_title="Dashboard OPC UA", page_icon="📡", layout="wide")
 
-# Création de variables aléatoires pour démo
-var_numeric_1 = random.randint(0, 100)
-var_numeric_2 = random.uniform(0, 50)
-var_numeric_3 = random.randint(200, 400)
-var_text = random.choice(["Normal", "Attention", "Erreur", "Maintenance"])
-var_bool = random.choice([True, False])
+# Adresse du serveur OPC UA
+OPC_SERVER_URL = "opc.tcp://135.236.107.162:4840"
 
-# Affichage des variables dans des cases
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("Variable 1", var_numeric_1)
-col2.metric("Variable 2", f"{var_numeric_2:.2f}")
-col3.metric("Variable 3", var_numeric_3)
-col4.metric("État", var_text)
+# Fonction pour récupérer les données OPC UA
+def get_opcua_data():
+    with Client(OPC_SERVER_URL) as client:
+        fio_msg = client.get_node("ns=1;s=FIO-msg").get_value()
+        fio_humidity = client.get_node("ns=1;s=FIO-humidity").get_value()
+        fio_pressure = client.get_node("ns=1;s=FIO-pressure").get_value()
+        fio_temperature = client.get_node("ns=1;s=FIO-temperature").get_value()
+        fio_status = client.get_node("ns=1;s=FIO-status").get_value()
 
-# Affichage personnalisé du booléen
-status_color = "green" if var_bool else "red"
-status_label = "ON" if var_bool else "OFF"
-col5.markdown(f"<h2 style='color:{status_color};text-align:center;'>{status_label}</h2>", unsafe_allow_html=True)
+    return {
+        "FIO-msg": fio_msg,
+        "FIO-humidity": fio_humidity,
+        "FIO-pressure": fio_pressure,
+        "FIO-temperature": fio_temperature,
+        "FIO-status": fio_status,
+    }
 
-# Génération de données pour graphiques
-chart_data1 = pd.DataFrame(
-    np.random.randn(20, 1),
-    columns=["Variable Numérique"]
-)
+# 📈 Stockage des données pour les graphiques
+if "data_history" not in st.session_state:
+    st.session_state.data_history = pd.DataFrame(columns=["Timestamp", "FIO-humidity", "FIO-pressure", "FIO-temperature"])
 
-chart_data2 = pd.DataFrame({
-    'État': np.random.choice(["Normal", "Attention", "Erreur", "Maintenance"], 100),
-    'Valeurs': np.random.randint(0, 100, 100)
-})
+# 📊 Interface utilisateur
+st.title("📡 Dashboard OPC UA")
 
-# Affichage des graphiques
-st.subheader("Graphique Variable Numérique")
-st.line_chart(chart_data1)
+if st.button("🔄 Actualiser les données OPC UA"):
+    data = get_opcua_data()
 
-st.subheader("Graphique État")
-st.bar_chart(chart_data2.groupby('État').mean())
+    # Ajout aux données historiques
+    new_data = pd.DataFrame({
+        "Timestamp": [pd.Timestamp.now()],
+        "FIO-humidity": [data["FIO-humidity"]],
+        "FIO-pressure": [data["FIO-pressure"]],
+        "FIO-temperature": [data["FIO-temperature"]],
+    })
+    st.session_state.data_history = pd.concat([st.session_state.data_history, new_data], ignore_index=True)
+
+    # 🎯 Affichage des métriques
+    st.markdown("### 📊 Données en temps réel")
+    col1, col2 = st.columns(2)
+    col1.metric("💧 Humidité (%)", f"{data['FIO-humidity']:.2f}%")
+    col1.metric("📏 Pression (hPa)", f"{data['FIO-pressure']:.2f}")
+    col2.metric("🌡️ Température (°C)", f"{data['FIO-temperature']:.2f}")
+    col2.metric("🔘 Statut", "🟢 ON" if data["FIO-status"] else "🔴 OFF")
+
+    # 📢 Affichage du message
+    st.write(f"**📜 Message :** {data['FIO-msg']}")
+
+# 📈 Affichage des graphiques
+if not st.session_state.data_history.empty:
+    st.markdown("### 📊 Visualisation des données")
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-temperature"], marker='o', linestyle='-', linewidth=2, label="Température (°C)")
+    ax.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-humidity"], marker='x', linestyle='--', linewidth=2, label="Humidité (%)")
+    ax.set_title("Évolution Température et Humidité", fontsize=16, fontweight='bold')
+    ax.set_xlabel("Temps", fontsize=14)
+    ax.set_ylabel("Valeur", fontsize=14)
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.7)
+    st.pyplot(fig)
+
+    fig2, ax2 = plt.subplots(figsize=(10, 5))
+    ax2.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-pressure"], marker='s', linestyle='-', color='purple', linewidth=2, label="Pression (hPa)")
+    ax2.set_title("Évolution Pression", fontsize=16, fontweight='bold')
+    ax2.set_xlabel("Temps", fontsize=14)
+    ax2.set_ylabel("Pression (hPa)", fontsize=14)
+    ax2.legend()
+    ax2.grid(True, linestyle='--', alpha=0.7)
+    st.pyplot(fig2)
