@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from opcua import Client
+import time
 
 # 🌟 Configuration de la page Streamlit
 st.set_page_config(page_title="Dashboard OPC UA", page_icon="📡", layout="wide")
@@ -33,31 +34,33 @@ if "data_history" not in st.session_state:
 # 📊 Interface utilisateur
 st.title("📡 Dashboard OPC UA")
 
-if st.button("🔄 Actualiser les données OPC UA"):
-    data = get_opcua_data()
+# Actualisation automatique toutes les 2 secondes
+data = get_opcua_data()
 
-    # Ajout aux données historiques
-    new_data = pd.DataFrame({
-        "Timestamp": [pd.Timestamp.now()],
-        "FIO-humidity": [data["FIO-humidity"]],
-        "FIO-pressure": [data["FIO-pressure"]],
-        "FIO-temperature": [data["FIO-temperature"]],
-    })
-    st.session_state.data_history = pd.concat([st.session_state.data_history, new_data], ignore_index=True)
+# Ajout aux données historiques
+new_data = pd.DataFrame({
+    "Timestamp": [pd.Timestamp.now()],
+    "FIO-humidity": [data["FIO-humidity"]],
+    "FIO-pressure": [data["FIO-pressure"]],
+    "FIO-temperature": [data["FIO-temperature"]],
+})
+st.session_state.data_history = pd.concat([st.session_state.data_history, new_data], ignore_index=True)
 
-    # 🎯 Affichage des métriques
-    st.markdown("### 📊 Données en temps réel")
-    col1, col2 = st.columns(2)
-    col1.metric("💧 Humidité (%)", f"{data['FIO-humidity']:.2f}%")
-    col1.metric("📏 Pression (hPa)", f"{data['FIO-pressure']:.2f}")
-    col2.metric("🌡️ Température (°C)", f"{data['FIO-temperature']:.2f}")
-    col2.metric("🔘 Statut", "🟢 ON" if data["FIO-status"] else "🔴 OFF")
+# 🎯 Affichage des métriques
+st.markdown("### 📊 Données en temps réel")
+col1, col2 = st.columns(2)
+col1.metric("💧 Humidité (%)", f"{data['FIO-humidity']:.2f}%")
+col1.metric("📏 Pression (hPa)", f"{data['FIO-pressure']:.2f}")
+col2.metric("🌡️ Température (°C)", f"{data['FIO-temperature']:.2f}")
+col2.metric("🔘 Statut", "🟢 ON" if data["FIO-status"] else "🔴 OFF")
 
-    # 📢 Affichage du message
-    st.write(f"**📜 Message :** {data['FIO-msg']}")
+# 📢 Affichage du message
+st.write(f"**📜 Message :** {data['FIO-msg']}")
 
 # 📈 Affichage des graphiques
 if not st.session_state.data_history.empty:
+    plt.style.use('dark_background')
+
     st.markdown("### 📊 Visualisation des données")
 
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -67,14 +70,18 @@ if not st.session_state.data_history.empty:
     ax.set_xlabel("Temps", fontsize=14)
     ax.set_ylabel("Valeur", fontsize=14)
     ax.legend()
-    ax.grid(True, linestyle='--', alpha=0.7)
+    ax.grid(True, linestyle='--', alpha=0.3)
     st.pyplot(fig)
 
     fig2, ax2 = plt.subplots(figsize=(10, 5))
-    ax2.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-pressure"], marker='s', linestyle='-', color='purple', linewidth=2, label="Pression (hPa)")
+    ax2.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-pressure"], marker='s', linestyle='-', linewidth=2, label="Pression (hPa)")
     ax2.set_title("Évolution Pression", fontsize=16, fontweight='bold')
     ax2.set_xlabel("Temps", fontsize=14)
     ax2.set_ylabel("Pression (hPa)", fontsize=14)
     ax2.legend()
-    ax2.grid(True, linestyle='--', alpha=0.7)
+    ax2.grid(True, linestyle='--', alpha=0.3)
     st.pyplot(fig2)
+
+# Rafraichissement automatique toutes les 2 secondes
+time.sleep(2)
+st.rerun()
