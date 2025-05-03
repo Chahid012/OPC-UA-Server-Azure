@@ -5,7 +5,7 @@ from opcua import Client
 import time
 
 # 🌟 Configuration de la page Streamlit
-st.set_page_config(page_title="Dashboard OPC UA", page_icon="📡", layout="wide")
+st.set_page_config(page_title="Développement d’un environnement pédagogique autour des systèmes embarqués et de l’Industrie 4.0 ", page_icon="📡", layout="wide")
 
 # Adresse du serveur OPC UA
 OPC_SERVER_URL = "opc.tcp://135.236.107.162:4840"
