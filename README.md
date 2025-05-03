@@ -3,8 +3,7 @@
 Ce guide détaille l’ensemble des étapes pour déployer une **machine virtuelle sur Azure**, installer **Docker-Compose** et configurer un **serveur OPC UA** basé sur **open62541**. L’environnement comprend plusieurs services essentiels :  
 
 - **Traefik** (Reverse Proxy)  
-- **MariaDB** & **phpMyAdmin** (Base de données et interface de gestion)  
-- **Streamlit** (Interface de visualisation)  
+- **MariaDB** & **phpMyAdmin** (Base de données et interface de gestion)
 - **Node-RED** (Automatisation et IoT)  
 - **MQTT** (Communication IoT)  
 - **Serveur OPC UA** (Protocole industriel, configuré via JSON)  
