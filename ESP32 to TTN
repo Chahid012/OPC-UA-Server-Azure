@@ -1,0 +1,115 @@
+#include <Arduino.h>
+#include <lmic.h>
+#include <hal/hal.h>
+#include <SPI.h>
+
+#define TX_INTERVAL 30  // secondes
+
+// === Clés ABP TTN ===
+static u1_t NWKSKEY[16] = {
+  0x4E, 0xFA, 0x9D, 0xE8, 0x27, 0xA4, 0xAB, 0xE6, 0x9E, 0x81, 0xEC, 0x21, 0xE4, 0x22, 0x0C, 0xC8
+};
+
+static u1_t APPSKEY[16] = {
+  0x9B, 0x9A, 0x2B, 0xEA, 0x24, 0x67, 0x59, 0xBC, 0xAA, 0x23, 0x72, 0x01, 0x65, 0xE6, 0xEA, 0xC6
+};
+
+static const u4_t DEVADDR = 0x260BE69B; // DevAddr TTN
+
+// === Brochage ESP32 / RFM95W ===
+const lmic_pinmap lmic_pins = {
+  .nss = 0,
+  .rxtx = LMIC_UNUSED_PIN,
+  .rst = 14,
+  .dio = {2, 32, LMIC_UNUSED_PIN}
+};
+
+// === Variables globales ===
+int value = 0;
+bool flag = false;
+unsigned long lastUpdateTime = 0;
+
+osjob_t sendjob;
+
+void do_send(osjob_t* j);
+
+void os_getArtEui(u1_t* buf) {}
+void os_getDevEui(u1_t* buf) {}
+void os_getDevKey(u1_t* buf) {}
+
+void onEvent(ev_t ev) {
+  Serial.print(F("[LMIC] Événement : "));
+  Serial.println(ev);
+
+  switch (ev) {
+    case EV_TXCOMPLETE:
+      Serial.println(F("✅ Uplink terminé."));
+      os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
+      break;
+    case EV_TXCANCELED:
+      Serial.println(F("⚠️ Envoi annulé."));
+      break;
+    default:
+      break;
+  }
+}
+
+void do_send(osjob_t* j) {
+  if (LMIC.opmode & OP_TXRXPEND) {
+    Serial.println(F("⏳ Envoi déjà en cours..."));
+  } else {
+    const char* message = "EPHEC_Lora";                           // Message str
+
+    uint8_t payload[7 + strlen(message)];
+    uint8_t i = 0;
+
+    payload[i++] = (value >> 8) & 0xFF;
+    payload[i++] = value & 0xFF;
+    payload[i++] = flag ? 1 : 0;
+    payload[i++] = strlen(message);
+    memcpy(&payload[i], message, strlen(message));
+    i += strlen(message);
+
+    Serial.print(F("→ Envoi sur freq (Hz): "));
+    Serial.println(LMIC.freq);
+    LMIC_setTxData2(1, payload, i, 0);
+    Serial.println(F("→ Transmission en cours..."));
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(3000);
+  Serial.println(F("🚀 Démarrage LoRaWAN ABP - Canal unique 868.1 MHz"));
+
+  os_init();
+  LMIC_reset();
+
+  LMIC_setSession(0x1, DEVADDR, NWKSKEY, APPSKEY);
+
+  for (int i = 1; i < 9; i++) {
+    LMIC_disableChannel(i);
+  }
+
+  LMIC_enableChannel(0);
+  LMIC_setDrTxpow(DR_SF7, 14);
+  LMIC.dn2Dr = DR_SF9;
+
+  do_send(&sendjob);
+}
+
+void loop() {
+  os_runloop_once();
+
+  // Mise à jour toutes les 30 secondes
+  if (millis() - lastUpdateTime >= 30000) {
+    value++;
+    flag = !flag;  // inversion du booléen
+    lastUpdateTime = millis();
+
+    Serial.print(F("🆕 Nouvelle valeur de value : "));
+    Serial.print(value);
+    Serial.print(F(" | Nouveau flag : "));
+    Serial.println(flag ? "true" : "false");
+  }
+}
