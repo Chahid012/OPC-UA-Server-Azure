@@ -1,31 +1,31 @@
+// === Bibliothèques ===
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
-#include <CayenneLPP.h>
-#include <Wire.h>
 
-float temp, pa, hum, alt;
-int cnt = 0;
+// === Suivi de l'état LoRa ===
 bool loraConnected = false;
 unsigned long lastSuccessMillis = 0;
 int failedTxCount = 0;
 const int MAX_FAILED_TX = 3;
 const unsigned long CONNECTION_TIMEOUT = 60000; // 60s
 
+// === Identifiants LoRaWAN (OTAA) ===
 static const u1_t PROGMEM APPEUI[8]= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8); }
 
 static const u1_t PROGMEM DEVEUI[8]=  { 0x9F, 0x00, 0x07, 0xD0, 0x7E, 0xD5, 0xB3, 0x70 };
 void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8); }
 
-static const u1_t PROGMEM APPKEY[16] = { 0x84, 0x3F, 0x30, 0x48, 0xD9, 0x89, 0xAA, 0x86, 0x84, 0xB9, 0xB3, 0xBE, 0xBB, 0x64, 0x1B, 0x7E };
-void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16); }
+static const u1_t PROGMEM APPKEY[16] = { 0x84, 0x3F, 0x30, 0x48, 0xD9, 0x89, 0xAA, 0x86,
+                                         0x84, 0xB9, 0xB3, 0xBE, 0xBB, 0x64, 0x1B, 0x7E };
+void os_getDevKey (u1_t* buf) { memcpy_P(buf, APPKEY, 16); }
 
+// === Envoi périodique ===
 static osjob_t sendjob;
-const unsigned TX_INTERVAL = 10;
-CayenneLPP lpp(51);
+const unsigned TX_INTERVAL = 10; // toutes les 10 secondes
 
-// === HAL ===
+// === Configuration matérielle pour LMIC ===
 class cHalConfiguration_t: public Arduino_LMIC::HalConfiguration_t {
 public:
     virtual u1_t queryBusyPin(void) override { return 13; };
@@ -47,12 +47,14 @@ const lmic_pinmap lmic_pins = {
     .pConfig = &myConfig,
 };
 
+// === Affiche un octet en hexadécimal ===
 void printHex2(unsigned v) {
     v &= 0xff;
     if (v < 16) Serial.print('0');
     Serial.print(v, HEX);
 }
 
+// === Gère l'état de connexion LoRa ===
 void updateLoRaStatus(bool success) {
   if (success) {
     loraConnected = true;
@@ -66,6 +68,7 @@ void updateLoRaStatus(bool success) {
   }
 }
 
+// === Affiche dans le moniteur série si LoRa est connecté ou non ===
 void showLoRaStatus() {
   if (loraConnected) {
     Serial.println("[LoRa] ✅ Connecté");
@@ -74,6 +77,7 @@ void showLoRaStatus() {
   }
 }
 
+// === Callback pour chaque événement LoRaWAN (JOIN, TX, etc.) ===
 void onEvent(ev_t ev) {
   Serial.print(os_getTime());
   Serial.print(": ");
@@ -85,35 +89,40 @@ void onEvent(ev_t ev) {
     case EV_JOINED:
       Serial.println(F("EV_JOINED"));
       updateLoRaStatus(true);
+
+      // Affiche les clés de session
       {
         u4_t netid = 0;
         devaddr_t devaddr = 0;
         u1_t nwkKey[16];
         u1_t artKey[16];
         LMIC_getSessionKeys(&netid, &devaddr, nwkKey, artKey);
-        Serial.print("netid: ");
-        Serial.println(netid, DEC);
-        Serial.print("devaddr: ");
-        Serial.println(devaddr, HEX);
+
+        Serial.print("netid: ");   Serial.println(netid, DEC);
+        Serial.print("devaddr: "); Serial.println(devaddr, HEX);
+
         Serial.print("AppSKey: ");
-        for (size_t i=0; i<sizeof(artKey); ++i) {
+        for (size_t i = 0; i < sizeof(artKey); ++i) {
           if (i != 0) Serial.print("-");
           printHex2(artKey[i]);
         }
         Serial.println();
+
         Serial.print("NwkSKey: ");
-        for (size_t i=0; i<sizeof(nwkKey); ++i) {
+        for (size_t i = 0; i < sizeof(nwkKey); ++i) {
           if (i != 0) Serial.print("-");
           printHex2(nwkKey[i]);
         }
         Serial.println();
       }
-      LMIC_setLinkCheckMode(0);
+
+      LMIC_setLinkCheckMode(0); // désactive les checks automatiques
       break;
 
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE"));
       updateLoRaStatus(true);
+
       if (LMIC.txrxFlags & TXRX_ACK) {
         Serial.println(F("ACK reçu"));
       }
@@ -121,7 +130,9 @@ void onEvent(ev_t ev) {
         Serial.print(F("Payload reçu : "));
         Serial.println(LMIC.dataLen);
       }
-      os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
+
+      // Planifie le prochain envoi
+      os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       break;
 
     case EV_TXCANCELED:
@@ -144,42 +155,37 @@ void onEvent(ev_t ev) {
   }
 }
 
+// === Fonction d’envoi d’un message texte simple via LoRa ===
 void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
-    Serial.println(F("OP_TXRXPEND, not sending"));
+    Serial.println(F("OP_TXRXPEND, not sending")); // Envoi en cours
   } else {
-    temp = 4.69;
-    hum = 74;
+    const char* message = "Ephec Lora32"; // Message à envoyer
+    int len = strlen(message);
 
-    Serial.print("Temp: ");
-    Serial.print(temp);
-    Serial.println(" C");
+    // Envoie le message sur le port 1, sans ACK
+    LMIC_setTxData2(1, (uint8_t*)message, len, 0);
 
-    Serial.print("Hum: ");
-    Serial.print(hum);
-    Serial.println(" %");
+    Serial.print(F("Message envoyé : "));
+    Serial.println(message);
 
-    lpp.reset();
-    lpp.addTemperature(2, temp);
-    lpp.addRelativeHumidity(3, hum);
-
-    LMIC_setTxData2(2, lpp.getBuffer(), lpp.getSize(), 0);
-    Serial.println(F("Packet queued"));
-
-    showLoRaStatus(); // 🔁 Affiche état actuel à chaque envoi
+    showLoRaStatus(); // Affiche le statut de connexion
   }
 }
 
+// === Initialisation ===
 void setup() {
   Serial.begin(115200);
   Serial.println(F("Starting..."));
 
-  os_init();
-  LMIC_reset();
-  lastSuccessMillis = millis(); // démarrage initial
-  do_send(&sendjob);
+  os_init();         // Initialise LMIC
+  LMIC_reset();      // Réinitialise les paramètres
+  lastSuccessMillis = millis();
+
+  do_send(&sendjob); // Premier envoi immédiat
 }
 
+// === Boucle principale ===
 void loop() {
-  os_runloop_once();
+  os_runloop_once(); // Gère les événements LMIC
 }
