@@ -10,7 +10,7 @@ sudo systemctl enable docker --now
 # --- Configuration pour Docker et Traefik ---
 echo "=== Configuration initiale pour Docker et Traefik ==="
 read -p "Entrez votre email pour ACME (Let's Encrypt) : " ACME_EMAIL
-read -p "Entrez votre domaine de base (ex: Exemple.com) : " BASE_DOMAIN 
+read -p "Entrez votre domaine de base (ex: Nomdedomaine.com) : " BASE_DOMAIN 
 
 # Calcul automatique des sous-domaines
 PMA_DOMAIN="pma.${BASE_DOMAIN}"
