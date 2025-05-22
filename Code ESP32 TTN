@@ -1,11 +1,11 @@
 #include <Arduino.h>
-#include <lmic.h>
-#include <hal/hal.h>
-#include <SPI.h>
+#include <lmic.h>        // Stack LoRaWAN LMIC
+#include <hal/hal.h>     // HAL matériel pour LMIC
+#include <SPI.h>         // Communication SPI avec le module LoRa
 
-#define TX_INTERVAL 30  // secondes
+#define TX_INTERVAL 30  // Intervalle d’envoi en secondes
 
-// === Clés ABP TTN ===
+// === Clés LoRaWAN (ABP) pour TTN ===
 static u1_t NWKSKEY[16] = {
   0x4E, 0xFA, 0x9D, 0xE8, 0x27, 0xA4, 0xAB, 0xE6, 0x9E, 0x81, 0xEC, 0x21, 0xE4, 0x22, 0x0C, 0xC8
 };
@@ -14,29 +14,29 @@ static u1_t APPSKEY[16] = {
   0x9B, 0x9A, 0x2B, 0xEA, 0x24, 0x67, 0x59, 0xBC, 0xAA, 0x23, 0x72, 0x01, 0x65, 0xE6, 0xEA, 0xC6
 };
 
-static const u4_t DEVADDR = 0x260BE69B; // DevAddr TTN
+static const u4_t DEVADDR = 0x260BE69B; // Adresse du device TTN (format Big Endian)
 
-// === Brochage ESP32 / RFM95W ===
+// === Configuration des broches (ESP32 vers RFM95W) ===
 const lmic_pinmap lmic_pins = {
-  .nss = 0,
+  .nss = 0,                         // Broche NSS (SPI)
   .rxtx = LMIC_UNUSED_PIN,
-  .rst = 14,
-  .dio = {2, 32, LMIC_UNUSED_PIN}
+  .rst = 14,                        // Broche Reset
+  .dio = {2, 32, LMIC_UNUSED_PIN}  // DIO0 = 2, DIO1 = 32
 };
 
-// === Variables globales ===
-int value = 0;
-bool flag = false;
-unsigned long lastUpdateTime = 0;
+// === Variables de simulation ===
+int value = 0;                      // Valeur incrémentée à chaque cycle
+bool flag = false;                 // Booléen inversé à chaque cycle
+unsigned long lastUpdateTime = 0;  // Timestamp du dernier update
 
-osjob_t sendjob;
+osjob_t sendjob;                   // Job d’envoi LoRaWAN (utilisé par LMIC)
 
-void do_send(osjob_t* j);
-
+// === Déclaration des fonctions obligatoires mais inutilisées pour ABP ===
 void os_getArtEui(u1_t* buf) {}
 void os_getDevEui(u1_t* buf) {}
 void os_getDevKey(u1_t* buf) {}
 
+// === Callback appelé sur chaque événement LoRaWAN (ex: envoi fini) ===
 void onEvent(ev_t ev) {
   Serial.print(F("[LMIC] Événement : "));
   Serial.println(ev);
@@ -44,69 +44,82 @@ void onEvent(ev_t ev) {
   switch (ev) {
     case EV_TXCOMPLETE:
       Serial.println(F("✅ Uplink terminé."));
+      // Planifie le prochain envoi après TX_INTERVAL
       os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       break;
+
     case EV_TXCANCELED:
       Serial.println(F("⚠️ Envoi annulé."));
       break;
+
     default:
-      break;
+      break; // Ignorer les autres événements ici
   }
 }
 
+// === Fonction d'envoi LoRa ===
 void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("⏳ Envoi déjà en cours..."));
   } else {
-    const char* message = "EPHEC_Lora";                           // Message str
+    const char* message = "EPHEC_Lora"; // Message texte à envoyer
 
+    // Création du payload (3 données + texte)
     uint8_t payload[7 + strlen(message)];
     uint8_t i = 0;
 
-    payload[i++] = (value >> 8) & 0xFF;
-    payload[i++] = value & 0xFF;
-    payload[i++] = flag ? 1 : 0;
-    payload[i++] = strlen(message);
-    memcpy(&payload[i], message, strlen(message));
+    // Encodage des données dans le payload
+    payload[i++] = (value >> 8) & 0xFF;          // Byte haut de value
+    payload[i++] = value & 0xFF;                 // Byte bas de value
+    payload[i++] = flag ? 1 : 0;                 // Booléen flag (1 ou 0)
+    payload[i++] = strlen(message);              // Longueur du texte
+    memcpy(&payload[i], message, strlen(message)); // Copie du message dans le payload
     i += strlen(message);
 
     Serial.print(F("→ Envoi sur freq (Hz): "));
-    Serial.println(LMIC.freq);
-    LMIC_setTxData2(1, payload, i, 0);
+    Serial.println(LMIC.freq); // Affiche la fréquence LoRa utilisée
+    LMIC_setTxData2(1, payload, i, 0); // Envoi sur port 1, pas d’ACK
     Serial.println(F("→ Transmission en cours..."));
   }
 }
 
+// === Initialisation de la carte et de LoRaWAN ===
 void setup() {
   Serial.begin(115200);
-  delay(3000);
+  delay(3000); // Attente pour stabilité au démarrage
   Serial.println(F("🚀 Démarrage LoRaWAN ABP - Canal unique 868.1 MHz"));
 
-  os_init();
-  LMIC_reset();
+  os_init();     // Initialise la stack LMIC
+  LMIC_reset();  // Réinitialise les états internes
 
+  // Configuration ABP (activation directe sans join)
   LMIC_setSession(0x1, DEVADDR, NWKSKEY, APPSKEY);
 
+  // Désactive tous les canaux sauf le canal 0 (868.1 MHz)
   for (int i = 1; i < 9; i++) {
     LMIC_disableChannel(i);
   }
-
   LMIC_enableChannel(0);
-  LMIC_setDrTxpow(DR_SF7, 14);
-  LMIC.dn2Dr = DR_SF9;
 
+  // Configuration : Spreading Factor SF7, puissance 14dBm
+  LMIC_setDrTxpow(DR_SF7, 14);
+  LMIC.dn2Dr = DR_SF9; // Paramètre RX2
+
+  // Premier envoi immédiat
   do_send(&sendjob);
 }
 
+// === Boucle principale (doit tourner en permanence) ===
 void loop() {
-  os_runloop_once();
+  os_runloop_once(); // Gère les événements LoRa (envoi, réception, etc.)
 
-  // Mise à jour toutes les 30 secondes
+  // Mise à jour des données toutes les 30 secondes
   if (millis() - lastUpdateTime >= 30000) {
-    value++;
-    flag = !flag;  // inversion du booléen
+    value++;               // Incrémente la valeur simulée
+    flag = !flag;          // Inverse le booléen
     lastUpdateTime = millis();
 
+    // Affichage des nouvelles valeurs en console
     Serial.print(F("🆕 Nouvelle valeur de value : "));
     Serial.print(value);
     Serial.print(F(" | Nouveau flag : "));
