@@ -8,7 +8,7 @@ Ce guide détaille l’ensemble des étapes pour déployer une **machine virtuel
 - **MQTT** (Communication IoT)  
 - **Serveur OPC UA** (Protocole industriel, configuré via JSON)  
 
-🎥 **Vidéo récapitulative des étapes :** [YouTube](https://youtu.be/HKy8vaBAl9k)  
+**Vidéo récapitulative des étapes :** [YouTube](https://youtu.be/HKy8vaBAl9k)  
 
 ---
 
@@ -107,7 +107,7 @@ gcc -std=c99 -I/usr/local/include -L/usr/local/lib -o opcua_server opcua_server.
 | Node-RED    | `https://nodered.iiotvm.publicvm.com` |
 | Portainer   | `https://portainer.iiotvm.publicvm.com` |
 
-📌 Remplacez `iiotvm.publicvm.com` par votre domaine personnalisé.  
+Remplacez `iiotvm.publicvm.com` par votre domaine personnalisé.  
 
 ## 6.2 Gestion des Conteneurs Docker  
 
@@ -131,6 +131,6 @@ pkill opcua_server
 # 7. Conclusion  
 
 L’environnement **IIOTVM** est désormais opérationnel, intégrant :  
-✅ Une infrastructure **Docker-Compose** avec **Traefik** et SSL.  
-✅ Un **serveur OPC UA** configurable via JSON.  
-✅ Un écosystème IIoT fonctionnel prêt à être personnalisé.
+ Une infrastructure **Docker-Compose** avec **Traefik** et SSL.  
+ Un **serveur OPC UA** configurable via JSON.  
+ Un écosystème IIoT fonctionnel prêt à être personnalisé.
