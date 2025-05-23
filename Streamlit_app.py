@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from opcua import Client
 import time
 
-# 🌟 Configuration de la page Streamlit
+#  Configuration de la page Streamlit
 st.set_page_config(page_title="Développement d’un environnement pédagogique autour des systèmes embarqués et de l’Industrie 4.0 ", page_icon="📡", layout="wide")
 
 # Adresse du serveur OPC UA
@@ -27,11 +27,11 @@ def get_opcua_data():
         "FIO-status": fio_status,
     }
 
-# 📈 Stockage des données pour les graphiques
+#  Stockage des données pour les graphiques
 if "data_history" not in st.session_state:
     st.session_state.data_history = pd.DataFrame(columns=["Timestamp", "FIO-humidity", "FIO-pressure", "FIO-temperature"])
 
-# 📊 Interface utilisateur
+# Interface utilisateur
 st.title("📡 Dashboard OPC UA")
 
 # Actualisation automatique toutes les 2 secondes
@@ -46,7 +46,7 @@ new_data = pd.DataFrame({
 })
 st.session_state.data_history = pd.concat([st.session_state.data_history, new_data], ignore_index=True)
 
-# 🎯 Affichage des métriques
+#  Affichage des métriques
 st.markdown("### 📊 Données en temps réel")
 col1, col2 = st.columns(2)
 col1.metric("💧 Humidité (%)", f"{data['FIO-humidity']:.2f}%")
@@ -54,10 +54,10 @@ col1.metric("📏 Pression (hPa)", f"{data['FIO-pressure']:.2f}")
 col2.metric("🌡️ Température (°C)", f"{data['FIO-temperature']:.2f}")
 col2.metric("🔘 Statut", "🟢 ON" if data["FIO-status"] else "🔴 OFF")
 
-# 📢 Affichage du message
+# Affichage du message
 st.write(f"**📜 Message :** {data['FIO-msg']}")
 
-# 📈 Affichage des graphiques
+#  Affichage des graphiques
 if not st.session_state.data_history.empty:
     plt.style.use('dark_background')
 
