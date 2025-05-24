@@ -43,13 +43,13 @@ void onEvent(ev_t ev) {
 
   switch (ev) {
     case EV_TXCOMPLETE:
-      Serial.println(F("✅ Uplink terminé."));
+      Serial.println(F(" Uplink terminé."));
       // Planifie le prochain envoi après TX_INTERVAL
       os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       break;
 
     case EV_TXCANCELED:
-      Serial.println(F("⚠️ Envoi annulé."));
+      Serial.println(F(" Envoi annulé."));
       break;
 
     default:
@@ -60,7 +60,7 @@ void onEvent(ev_t ev) {
 // === Fonction d'envoi LoRa ===
 void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
-    Serial.println(F("⏳ Envoi déjà en cours..."));
+    Serial.println(F(" Envoi déjà en cours..."));
   } else {
     const char* message = "EPHEC_Lora"; // Message texte à envoyer
 
@@ -87,7 +87,7 @@ void do_send(osjob_t* j) {
 void setup() {
   Serial.begin(115200);
   delay(3000); // Attente pour stabilité au démarrage
-  Serial.println(F("🚀 Démarrage LoRaWAN ABP - Canal unique 868.1 MHz"));
+  Serial.println(F(" Démarrage LoRaWAN ABP - Canal unique 868.1 MHz"));
 
   os_init();     // Initialise la stack LMIC
   LMIC_reset();  // Réinitialise les états internes
@@ -120,7 +120,7 @@ void loop() {
     lastUpdateTime = millis();
 
     // Affichage des nouvelles valeurs en console
-    Serial.print(F("🆕 Nouvelle valeur de value : "));
+    Serial.print(F(" Nouvelle valeur de value : "));
     Serial.print(value);
     Serial.print(F(" | Nouveau flag : "));
     Serial.println(flag ? "true" : "false");
