@@ -71,9 +71,9 @@ void updateLoRaStatus(bool success) {
 // === Affiche dans le moniteur série si LoRa est connecté ou non ===
 void showLoRaStatus() {
   if (loraConnected) {
-    Serial.println("[LoRa] ✅ Connecté");
+    Serial.println("[LoRa] Connecté");
   } else {
-    Serial.println("[LoRa] ❌ Perte de connexion");
+    Serial.println("[LoRa]  Perte de connexion");
   }
 }
 
@@ -140,7 +140,7 @@ void onEvent(ev_t ev) {
     case EV_REJOIN_FAILED:
     case EV_JOIN_TXCOMPLETE:
     case EV_LINK_DEAD:
-      Serial.println(F("⚠️ Échec de transmission ou Join"));
+      Serial.println(F("Échec de transmission ou Join"));
       updateLoRaStatus(false);
       break;
 
