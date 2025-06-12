@@ -47,21 +47,21 @@ new_data = pd.DataFrame({
 st.session_state.data_history = pd.concat([st.session_state.data_history, new_data], ignore_index=True)
 
 #  Affichage des métriques
-st.markdown("### 📊 Données en temps réel")
+st.markdown("### Données en temps réel")
 col1, col2 = st.columns(2)
-col1.metric("💧 Humidité (%)", f"{data['FIO-humidity']:.2f}%")
-col1.metric("📏 Pression (hPa)", f"{data['FIO-pressure']:.2f}")
-col2.metric("🌡️ Température (°C)", f"{data['FIO-temperature']:.2f}")
+col1.metric("Humidité (%)", f"{data['FIO-humidity']:.2f}%")
+col1.metric("Pression (hPa)", f"{data['FIO-pressure']:.2f}")
+col2.metric("Température (°C)", f"{data['FIO-temperature']:.2f}")
 col2.metric("🔘 Statut", "🟢 ON" if data["FIO-status"] else "🔴 OFF")
 
 # Affichage du message
-st.write(f"**📜 Message :** {data['FIO-msg']}")
+st.write(f"**Message :** {data['FIO-msg']}")
 
 #  Affichage des graphiques
 if not st.session_state.data_history.empty:
     plt.style.use('dark_background')
 
-    st.markdown("### 📊 Visualisation des données")
+    st.markdown("### Visualisation des données")
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(st.session_state.data_history["Timestamp"], st.session_state.data_history["FIO-temperature"], marker='o', linestyle='-', linewidth=2, label="Température (°C)")
