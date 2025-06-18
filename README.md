@@ -8,7 +8,7 @@ Ce guide détaille l’ensemble des étapes pour déployer une **machine virtuel
 - **MQTT** (Communication IoT)  
 - **Serveur OPC UA** (Protocole industriel, configuré via JSON)  
 
-**Vidéo récapitulative des étapes :** [YouTube](https://youtu.be/HKy8vaBAl9k)  
+**Vidéo récapitulative des étapes :** [YouTube].  
 
 ---
 
